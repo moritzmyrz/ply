@@ -4,8 +4,7 @@ use crate::board::{CastleSide, ChessMove, Color, PieceKind, Position, Square};
 use crate::fen::parse_fen;
 use crate::movegen::{apply_move, generate_legal_moves, is_in_check};
 
-pub const OFFICIAL_STARTPOS_FEN: &str =
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+pub const OFFICIAL_STARTPOS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 #[derive(Debug, Clone)]
 pub struct PgnGame {
@@ -48,12 +47,10 @@ pub fn parse_pgn(input: &str) -> Result<Vec<PgnGame>, PgnError> {
 }
 
 pub fn reconstruct_game(game: &PgnGame) -> Result<GameRecord, PgnError> {
-    let start_fen = game
-        .tags
-        .get("FEN")
-        .cloned()
-        .unwrap_or_else(|| OFFICIAL_STARTPOS_FEN.to_string());
-    let mut position = parse_fen(&start_fen).map_err(|e| PgnError::InvalidInitialFen(format!("{e:?}")))?;
+    let start_fen =
+        game.tags.get("FEN").cloned().unwrap_or_else(|| OFFICIAL_STARTPOS_FEN.to_string());
+    let mut position =
+        parse_fen(&start_fen).map_err(|e| PgnError::InvalidInitialFen(format!("{e:?}")))?;
     let mut plies = Vec::new();
 
     for (idx, san) in game.moves.iter().enumerate() {
@@ -69,11 +66,7 @@ pub fn reconstruct_game(game: &PgnGame) -> Result<GameRecord, PgnError> {
         plies.push(chosen);
     }
 
-    Ok(GameRecord {
-        game: game.clone(),
-        position,
-        plies,
-    })
+    Ok(GameRecord { game: game.clone(), position, plies })
 }
 
 fn split_games(input: &str) -> Vec<String> {
@@ -134,9 +127,8 @@ fn parse_tag_line(line: &str) -> Result<(String, String), PgnError> {
         .next()
         .filter(|s| !s.is_empty())
         .ok_or_else(|| PgnError::Parse(format!("missing tag key: {line}")))?;
-    let raw_value = parts
-        .next()
-        .ok_or_else(|| PgnError::Parse(format!("missing tag value: {line}")))?;
+    let raw_value =
+        parts.next().ok_or_else(|| PgnError::Parse(format!("missing tag value: {line}")))?;
     let value = raw_value.trim();
     if !value.starts_with('"') || !value.ends_with('"') || value.len() < 2 {
         return Err(PgnError::Parse(format!("invalid tag value: {line}")));
@@ -179,10 +171,7 @@ fn tokenize_movetext(input: &str) -> Vec<String> {
             _ => cleaned.push(ch),
         }
     }
-    cleaned
-        .split_whitespace()
-        .map(|s| s.trim().to_string())
-        .collect()
+    cleaned.split_whitespace().map(|s| s.trim().to_string()).collect()
 }
 
 fn is_result_token(tok: &str) -> bool {
@@ -196,16 +185,10 @@ fn is_move_number_token(tok: &str) -> bool {
 fn resolve_san(position: &Position, legal: &[ChessMove], san: &str) -> Option<ChessMove> {
     let clean = normalize_san(san);
     if clean == "O-O" {
-        return legal
-            .iter()
-            .copied()
-            .find(|m| m.castle == Some(CastleSide::KingSide));
+        return legal.iter().copied().find(|m| m.castle == Some(CastleSide::KingSide));
     }
     if clean == "O-O-O" {
-        return legal
-            .iter()
-            .copied()
-            .find(|m| m.castle == Some(CastleSide::QueenSide));
+        return legal.iter().copied().find(|m| m.castle == Some(CastleSide::QueenSide));
     }
 
     let target = parse_target_square(&clean)?;
@@ -220,12 +203,7 @@ fn resolve_san(position: &Position, legal: &[ChessMove], san: &str) -> Option<Ch
         .filter(|mv| mv.to == target)
         .filter(|mv| mv.promotion == promo)
         .filter(|mv| mv.is_capture == capture || (piece_kind == PieceKind::Pawn && capture))
-        .filter(|mv| {
-            position
-                .piece_at(mv.from)
-                .map(|p| p.kind == piece_kind)
-                .unwrap_or(false)
-        })
+        .filter(|mv| position.piece_at(mv.from).map(|p| p.kind == piece_kind).unwrap_or(false))
         .collect();
 
     if let Some(file) = from_file_hint {

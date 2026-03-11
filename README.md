@@ -71,7 +71,7 @@ cargo run -- summarize tests/fixtures/sample_games.pgn
 ## Example output
 Human-readable summary (`ply summarize tests/fixtures/sample_games.pgn`):
 ```text
-1. WhitePlayer vs BlackPlayer | result=1-0 | plies=10
+1. WhitePlayer vs BlackPlayer | result=1-0 | plies=7
 2. Alpha vs Beta | result=1/2-1/2 | plies=8
 ```
 
@@ -84,8 +84,8 @@ JSON stats (`ply stats tests/fixtures/sample_games.pgn --json`):
     "black_wins": 0,
     "draws": 1,
     "unresolved": 0,
-    "total_plies": 18,
-    "average_plies": 9.0
+    "total_plies": 15,
+    "average_plies": 7.5
   },
   "games": [
     {
@@ -93,8 +93,16 @@ JSON stats (`ply stats tests/fixtures/sample_games.pgn --json`):
       "white": "WhitePlayer",
       "black": "BlackPlayer",
       "result": "1-0",
-      "plies": 10,
+      "plies": 7,
       "winner": "white"
+    },
+    {
+      "event": "DrawnGame",
+      "white": "Alpha",
+      "black": "Beta",
+      "result": "1/2-1/2",
+      "plies": 8,
+      "winner": null
     }
   ]
 }

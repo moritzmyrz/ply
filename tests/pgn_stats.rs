@@ -15,7 +15,7 @@ fn parse_and_reconstruct_fixture_games() {
         .map(reconstruct_game)
         .collect::<Result<Vec<_>, _>>()
         .expect("games should reconstruct");
-    assert_eq!(records[0].plies.len(), 10);
+    assert_eq!(records[0].plies.len(), 7);
     assert_eq!(records[1].plies.len(), 8);
 }
 

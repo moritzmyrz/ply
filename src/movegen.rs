@@ -1,6 +1,4 @@
-use crate::board::{
-    CastleSide, ChessMove, Color, Piece, PieceKind, Position, Square,
-};
+use crate::board::{CastleSide, ChessMove, Color, Piece, PieceKind, Position, Square};
 
 pub fn generate_legal_moves(position: &Position) -> Vec<ChessMove> {
     let pseudo = generate_pseudo_legal_moves(position);
@@ -39,38 +37,17 @@ pub fn is_square_attacked(position: &Position, target: Square, by: Color) -> boo
                     &[(-1, -1), (1, -1)]
                 }
             }
-            PieceKind::Knight => &[
-                (-2, -1),
-                (-2, 1),
-                (-1, -2),
-                (-1, 2),
-                (1, -2),
-                (1, 2),
-                (2, -1),
-                (2, 1),
-            ],
+            PieceKind::Knight => {
+                &[(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
+            }
             PieceKind::Bishop => &[(-1, -1), (-1, 1), (1, -1), (1, 1)],
             PieceKind::Rook => &[(-1, 0), (1, 0), (0, -1), (0, 1)],
-            PieceKind::Queen => &[
-                (-1, -1),
-                (-1, 1),
-                (1, -1),
-                (1, 1),
-                (-1, 0),
-                (1, 0),
-                (0, -1),
-                (0, 1),
-            ],
-            PieceKind::King => &[
-                (-1, -1),
-                (-1, 1),
-                (1, -1),
-                (1, 1),
-                (-1, 0),
-                (1, 0),
-                (0, -1),
-                (0, 1),
-            ],
+            PieceKind::Queen => {
+                &[(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)]
+            }
+            PieceKind::King => {
+                &[(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)]
+            }
         };
 
         match piece.kind {
@@ -107,12 +84,10 @@ pub fn apply_move(position: &mut Position, mv: ChessMove) {
     position.set_piece(mv.from, None);
     if mv.is_en_passant {
         if let Some(p) = piece {
-            let capture_rank = if p.color == Color::White {
-                mv.to.rank() - 1
-            } else {
-                mv.to.rank() + 1
-            };
-            let capture_sq = Square::from_coords(mv.to.file(), capture_rank).expect("capture square");
+            let capture_rank =
+                if p.color == Color::White { mv.to.rank() - 1 } else { mv.to.rank() + 1 };
+            let capture_sq =
+                Square::from_coords(mv.to.file(), capture_rank).expect("capture square");
             position.set_piece(capture_sq, None);
         }
     }
@@ -165,16 +140,7 @@ pub fn generate_pseudo_legal_moves(position: &Position) -> Vec<ChessMove> {
                 position,
                 from,
                 piece,
-                &[
-                    (-1, -1),
-                    (-1, 1),
-                    (1, -1),
-                    (1, 1),
-                    (-1, 0),
-                    (1, 0),
-                    (0, -1),
-                    (0, 1),
-                ],
+                &[(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)],
                 &mut moves,
             ),
             PieceKind::King => {
@@ -239,12 +205,7 @@ fn push_pawn_moves(position: &Position, from: Square, piece: Piece, out: &mut Ve
 
 fn push_pawn_advance(from: Square, to: Square, promo_rank: u8, out: &mut Vec<ChessMove>) {
     if to.rank() == promo_rank {
-        for promo in [
-            PieceKind::Queen,
-            PieceKind::Rook,
-            PieceKind::Bishop,
-            PieceKind::Knight,
-        ] {
+        for promo in [PieceKind::Queen, PieceKind::Rook, PieceKind::Bishop, PieceKind::Knight] {
             let mut mv = ChessMove::new(from, to);
             mv.promotion = Some(promo);
             out.push(mv);
@@ -255,16 +216,7 @@ fn push_pawn_advance(from: Square, to: Square, promo_rank: u8, out: &mut Vec<Che
 }
 
 fn push_knight_moves(position: &Position, from: Square, piece: Piece, out: &mut Vec<ChessMove>) {
-    for (df, dr) in [
-        (-2, -1),
-        (-2, 1),
-        (-1, -2),
-        (-1, 2),
-        (1, -2),
-        (1, 2),
-        (2, -1),
-        (2, 1),
-    ] {
+    for (df, dr) in [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)] {
         if let Some(to) = offset_square(from, df, dr) {
             match position.piece_at(to) {
                 None => out.push(ChessMove::new(from, to)),
@@ -305,16 +257,7 @@ fn push_slider_moves(
 }
 
 fn push_king_moves(position: &Position, from: Square, piece: Piece, out: &mut Vec<ChessMove>) {
-    for (df, dr) in [
-        (-1, -1),
-        (-1, 1),
-        (1, -1),
-        (1, 1),
-        (-1, 0),
-        (1, 0),
-        (0, -1),
-        (0, 1),
-    ] {
+    for (df, dr) in [(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)] {
         if let Some(to) = offset_square(from, df, dr) {
             match position.piece_at(to) {
                 None => out.push(ChessMove::new(from, to)),
@@ -337,16 +280,12 @@ fn push_castling_moves(position: &Position, from: Square, piece: Piece, out: &mu
         return;
     }
     let (rank, king_side_ok, queen_side_ok) = match piece.color {
-        Color::White => (
-            0u8,
-            position.castling.white_king_side,
-            position.castling.white_queen_side,
-        ),
-        Color::Black => (
-            7u8,
-            position.castling.black_king_side,
-            position.castling.black_queen_side,
-        ),
+        Color::White => {
+            (0u8, position.castling.white_king_side, position.castling.white_queen_side)
+        }
+        Color::Black => {
+            (7u8, position.castling.black_king_side, position.castling.black_queen_side)
+        }
     };
 
     if from != Square::from_coords(4, rank).expect("e-file") {
@@ -441,8 +380,7 @@ fn update_en_passant_target(position: &mut Position, moved_piece: Option<Piece>,
             let to_rank = mv.to.rank() as i8;
             if (from_rank - to_rank).abs() == 2 {
                 let mid_rank = ((from_rank + to_rank) / 2) as u8;
-                position.en_passant_target =
-                    Square::from_coords(mv.from.file(), mid_rank);
+                position.en_passant_target = Square::from_coords(mv.from.file(), mid_rank);
             }
         }
     }

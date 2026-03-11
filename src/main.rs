@@ -94,10 +94,7 @@ fn cmd_summarize(file: &PathBuf) -> Result<(), String> {
 fn cmd_stats(file: &PathBuf, json: bool) -> Result<(), String> {
     let content = fs::read_to_string(file).map_err(|e| format!("failed to read file: {e}"))?;
     let games = parse_pgn(&content).map_err(|e| format!("{e:?}"))?;
-    let records = games
-        .iter()
-        .filter_map(|g| reconstruct_game(g).ok())
-        .collect::<Vec<_>>();
+    let records = games.iter().filter_map(|g| reconstruct_game(g).ok()).collect::<Vec<_>>();
     let summaries = summarize_games(&records);
     let stats = aggregate_stats(&summaries);
     if json {

@@ -162,14 +162,7 @@ pub struct ChessMove {
 
 impl ChessMove {
     pub fn new(from: Square, to: Square) -> Self {
-        Self {
-            from,
-            to,
-            promotion: None,
-            is_capture: false,
-            is_en_passant: false,
-            castle: None,
-        }
+        Self { from, to, promotion: None, is_capture: false, is_en_passant: false, castle: None }
     }
 }
 

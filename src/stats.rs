@@ -24,11 +24,7 @@ pub struct AggregateStats {
 
 pub fn summarize_game(record: &GameRecord) -> GameSummary {
     let tags = &record.game.tags;
-    let result = record
-        .game
-        .result
-        .clone()
-        .or_else(|| tags.get("Result").cloned());
+    let result = record.game.result.clone().or_else(|| tags.get("Result").cloned());
     let winner = color_from_result(result.as_ref());
 
     GameSummary {
@@ -46,8 +42,7 @@ pub fn summarize_games(records: &[GameRecord]) -> Vec<GameSummary> {
 }
 
 pub fn aggregate_stats(summaries: &[GameSummary]) -> AggregateStats {
-    let mut stats = AggregateStats::default();
-    stats.games = summaries.len();
+    let mut stats = AggregateStats { games: summaries.len(), ..AggregateStats::default() };
     for summary in summaries {
         stats.total_plies += summary.plies;
         match summary.result.as_deref() {

@@ -24,12 +24,10 @@ pub fn parse_fen(input: &str) -> Result<Position, FenError> {
     position.side_to_move = parse_side_to_move(fields[1])?;
     position.castling = parse_castling(fields[2])?;
     position.en_passant_target = parse_en_passant(fields[3])?;
-    position.halfmove_clock = fields[4]
-        .parse::<u32>()
-        .map_err(|_| FenError::InvalidHalfmoveClock)?;
-    position.fullmove_number = fields[5]
-        .parse::<u32>()
-        .map_err(|_| FenError::InvalidFullmoveNumber)?;
+    position.halfmove_clock =
+        fields[4].parse::<u32>().map_err(|_| FenError::InvalidHalfmoveClock)?;
+    position.fullmove_number =
+        fields[5].parse::<u32>().map_err(|_| FenError::InvalidFullmoveNumber)?;
     if position.fullmove_number == 0 {
         return Err(FenError::InvalidFullmoveNumber);
     }
@@ -82,10 +80,8 @@ pub fn to_fen(position: &Position) -> String {
         castling.push('-');
     }
 
-    let en_passant = position
-        .en_passant_target
-        .map(|sq| sq.to_algebraic())
-        .unwrap_or_else(|| "-".to_string());
+    let en_passant =
+        position.en_passant_target.map(|sq| sq.to_algebraic()).unwrap_or_else(|| "-".to_string());
 
     format!(
         "{board_str} {side} {castling} {en_passant} {} {}",
@@ -118,11 +114,7 @@ fn parse_board(field: &str, position: &mut Position) -> Result<(), FenError> {
             if file >= 8 {
                 return Err(FenError::InvalidBoard("file overflow".to_string()));
             }
-            let color = if ch.is_ascii_uppercase() {
-                Color::White
-            } else {
-                Color::Black
-            };
+            let color = if ch.is_ascii_uppercase() { Color::White } else { Color::Black };
             let sq = Square::from_coords(file, rank).expect("square");
             position.set_piece(sq, Some(Piece { color, kind }));
             file += 1;
