@@ -1,10 +1,13 @@
 # ply
+
 Fast Rust toolkit for PGN parsing, legal move generation, and chess game analysis.
 
 ## Overview
+
 `ply` is an open-source Rust chess infrastructure project focused on correctness, predictable behavior, and practical tooling.
 
 It provides a composable core for:
+
 - parsing and serializing FEN,
 - representing board state and applying legal moves,
 - parsing PGN and reconstructing games from SAN,
@@ -15,11 +18,13 @@ It provides a composable core for:
 This project is **not** a top-tier competitive chess engine and does not currently implement evaluation/search designed to compete with Stockfish-class engines. The primary goal is reliable chess data infrastructure for developers, analysts, and downstream tooling.
 
 ## Why this project?
+
 - Build a clean Rust codebase for chess data processing that is easy to inspect and extend.
 - Keep move legality and replay logic in a reusable library, with a thin CLI layer on top.
 - Support real workflows: validating PGN collections, summarizing games, and inspecting positions.
 
 ## Features
+
 - **FEN parsing and serialization**
   - strict 6-field validation (`board`, side-to-move, castling, en-passant, halfmove, fullmove)
   - normalized round-trip rendering
@@ -44,11 +49,13 @@ This project is **not** a top-tier competitive chess engine and does not current
   - inspect FEN positions and legal moves
 
 ### Current implementation boundaries
+
 - PGN comments and variations are stripped during tokenization (baseline parser behavior).
 - SAN handling supports common game notation used in standard game files; edge-case PGN dialects may require further expansion.
 - No engine evaluation/search module yet.
 
 ## Example CLI usage
+
 ```bash
 # Validate whether games can be reconstructed legally
 ply validate games.pgn
@@ -64,18 +71,22 @@ ply fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" --legal-moves
 ```
 
 You can also run the binary through Cargo during development:
+
 ```bash
 cargo run -- summarize tests/fixtures/sample_games.pgn
 ```
 
 ## Example output
+
 Human-readable summary (`ply summarize tests/fixtures/sample_games.pgn`):
+
 ```text
 1. WhitePlayer vs BlackPlayer | result=1-0 | plies=7
 2. Alpha vs Beta | result=1/2-1/2 | plies=8
 ```
 
 JSON stats (`ply stats tests/fixtures/sample_games.pgn --json`):
+
 ```json
 {
   "stats": {
@@ -109,6 +120,7 @@ JSON stats (`ply stats tests/fixtures/sample_games.pgn --json`):
 ```
 
 ## Architecture
+
 The repository is organized as a library-first core with a small command-line frontend.
 
 - `src/lib.rs`
@@ -133,14 +145,17 @@ The repository is organized as a library-first core with a small command-line fr
   - criterion benchmark for legal move generation throughput from start position
 
 ## Installation
+
 ### Clone and build
+
 ```bash
-git clone https://github.com/myrseth/ply.git
+git clone https://github.com/moritzmyrz/ply.git
 cd ply
 cargo build
 ```
 
 ### Run the CLI locally
+
 ```bash
 cargo run -- validate tests/fixtures/sample_games.pgn
 cargo run -- summarize tests/fixtures/sample_games.pgn
@@ -149,11 +164,13 @@ cargo run -- fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" --le
 ```
 
 ### Run tests
+
 ```bash
 cargo test
 ```
 
 ## Development
+
 The project includes a simple `Makefile` for common development commands:
 
 ```bash
@@ -164,6 +181,7 @@ make bench  # cargo bench
 ```
 
 If you prefer direct Cargo commands:
+
 ```bash
 cargo fmt
 cargo clippy --all-targets --all-features -- -D warnings
@@ -172,6 +190,7 @@ cargo bench
 ```
 
 ## Roadmap
+
 - Improve opening metadata extraction and ECO classification support.
 - Add perft tooling for move-generation validation and regression checks.
 - Introduce Zobrist hashing for efficient position keys and caching.
@@ -179,7 +198,9 @@ cargo bench
 - Provide bindings/WASM targets for browser and polyglot tooling integration.
 
 ## Project status
+
 Active development. Current work is focused on building a correct, well-tested core for chess parsing, reconstruction, and analysis workflows before expanding engine-oriented capabilities.
 
 ## License
+
 Licensed under `GPL-3.0-or-later`. See [LICENSE](LICENSE).
