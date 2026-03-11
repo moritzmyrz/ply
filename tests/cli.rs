@@ -24,4 +24,15 @@ fn stats_json_command_runs() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("\"games\": 2"));
+    assert!(stdout.contains("\"white_first_moves\""));
+    assert!(stdout.contains("\"total_checks\": 1"));
+}
+
+#[test]
+fn perft_command_runs() {
+    let output = Command::new(bin()).args(["perft", "--depth", "2"]).output().expect("should run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("depth: 2"));
+    assert!(stdout.contains("nodes: 400"));
 }

@@ -39,7 +39,13 @@ This project is **not** a top-tier competitive chess engine and does not current
   - full game replay to final position
 - **Per-game summaries and aggregate statistics**
   - player/result/plies summary fields
-  - wins/draws/unresolved totals and average plies
+  - opening move frequencies (White and Black first moves)
+  - castling distribution (kingside, queenside, no castling)
+  - total/average captures, checks, and promotions
+  - average game length by result type
+- **Perft support**
+  - reusable perft API for legal move generation validation
+  - CLI command for quick node-count checks
 - **JSON export**
   - structured JSON for aggregate stats and per-game summaries
 - **CLI workflows**
@@ -47,6 +53,16 @@ This project is **not** a top-tier competitive chess engine and does not current
   - summarize reconstructed games
   - print aggregate stats (text or JSON)
   - inspect FEN positions and legal moves
+  - run perft against startpos or custom FEN
+
+## Correctness and validation
+
+`ply` treats correctness as a core requirement and validates behavior at multiple layers:
+
+- **Move legality validation**: legal move generation is covered by integration tests for baseline positions and special rules like en passant.
+- **Replay validation**: PGN reconstruction resolves SAN against generated legal moves and is exercised with fixture-based tests.
+- **Perft regression checks**: known perft node counts (including start position and tricky reference positions) are tested to catch move-generation regressions.
+- **CLI-level checks**: command integration tests verify that key workflows (`validate`, `stats --json`, `perft`) execute and emit expected output.
 
 ### Current implementation boundaries
 
@@ -68,6 +84,9 @@ ply stats games.pgn --json
 
 # Parse a FEN and list legal moves in coordinate notation
 ply fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" --legal-moves
+
+# Run perft on start position (or pass --fen "<fen>")
+ply perft --depth 3
 ```
 
 You can also run the binary through Cargo during development:
@@ -90,13 +109,34 @@ JSON stats (`ply stats tests/fixtures/sample_games.pgn --json`):
 ```json
 {
   "stats": {
-    "games": 2,
-    "white_wins": 1,
+    "average_captures": 0.5,
+    "average_checks": 0.5,
+    "average_plies": 7.5,
+    "average_plies_black_wins": null,
+    "average_plies_draws": 8.0,
+    "average_plies_unresolved": null,
+    "average_plies_white_wins": 7.0,
+    "average_promotions": 0.0,
+    "black_first_moves": {
+      "d5": 1,
+      "e5": 1
+    },
     "black_wins": 0,
     "draws": 1,
-    "unresolved": 0,
+    "games": 2,
+    "games_with_kingside_castle": 0,
+    "games_with_no_castling": 2,
+    "games_with_queenside_castle": 0,
+    "total_captures": 1,
+    "total_checks": 1,
     "total_plies": 15,
-    "average_plies": 7.5
+    "total_promotions": 0,
+    "unresolved": 0,
+    "white_first_moves": {
+      "d4": 1,
+      "e4": 1
+    },
+    "white_wins": 1
   },
   "games": [
     {
@@ -117,6 +157,15 @@ JSON stats (`ply stats tests/fixtures/sample_games.pgn --json`):
     }
   ]
 }
+```
+
+Perft (`ply perft --depth 3`):
+
+```text
+depth: 3
+nodes: 8902
+elapsed_ms: 24
+nps: 357520
 ```
 
 ## Architecture
@@ -161,6 +210,7 @@ cargo run -- validate tests/fixtures/sample_games.pgn
 cargo run -- summarize tests/fixtures/sample_games.pgn
 cargo run -- stats tests/fixtures/sample_games.pgn --json
 cargo run -- fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" --legal-moves
+cargo run -- perft --depth 3
 ```
 
 ### Run tests
@@ -192,7 +242,6 @@ cargo bench
 ## Roadmap
 
 - Improve opening metadata extraction and ECO classification support.
-- Add perft tooling for move-generation validation and regression checks.
 - Introduce Zobrist hashing for efficient position keys and caching.
 - Add evaluation/search scaffolding (non-competitive baseline engine components).
 - Provide bindings/WASM targets for browser and polyglot tooling integration.
