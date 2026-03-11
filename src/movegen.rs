@@ -124,6 +124,7 @@ pub fn apply_move(position: &mut Position, mv: ChessMove) {
             p.kind = prom;
             Some(p)
         }
+        (None, Some(_)) => None,
         (p, None) => p,
     };
     position.set_piece(mv.to, moved_piece);
