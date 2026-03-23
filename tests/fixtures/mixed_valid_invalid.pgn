@@ -1,0 +1,11 @@
+[Event "ValidMini"]
+[White "W"]
+[Black "B"]
+
+1. e4 e5 *
+
+[Event "IllegalCastleFirst"]
+[White "W"]
+[Black "B"]
+
+1. O-O *

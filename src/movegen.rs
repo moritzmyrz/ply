@@ -1,4 +1,6 @@
-use crate::board::{CastleSide, CastlingRights, ChessMove, Color, Piece, PieceKind, Position, Square};
+use crate::board::{
+    CastleSide, CastlingRights, ChessMove, Color, Piece, PieceKind, Position, Square,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Undo {
@@ -23,17 +25,21 @@ pub fn generate_legal_moves_into(position: &Position, out: &mut Vec<ChessMove>) 
     out.clear();
     let mut pseudo = Vec::with_capacity(64);
     generate_pseudo_legal_moves_into(position, &mut pseudo);
+    let mut scratch = position.clone();
+    let side = position.side_to_move;
     for mv in pseudo {
-        let mut next = position.clone();
-        apply_move(&mut next, mv);
-        if !is_in_check(&next, position.side_to_move) {
+        let undo = apply_move_with_undo(&mut scratch, mv);
+        if !is_in_check(&scratch, side) {
             out.push(mv);
         }
+        undo_move(&mut scratch, mv, undo);
     }
 }
 
 pub fn is_in_check(position: &Position, color: Color) -> bool {
-    let king_sq = position.king_square(color).expect("valid positions must track kings");
+    let Some(king_sq) = position.king_square(color) else {
+        return false;
+    };
     is_square_attacked(position, king_sq, color.opposite())
 }
 
@@ -350,8 +356,12 @@ fn push_castling_moves(position: &Position, from: Square, piece: Piece, out: &mu
         return;
     }
     let (rank, king_side_ok, queen_side_ok) = match piece.color {
-        Color::White => (0u8, position.castling.white_king_side, position.castling.white_queen_side),
-        Color::Black => (7u8, position.castling.black_king_side, position.castling.black_queen_side),
+        Color::White => {
+            (0u8, position.castling.white_king_side, position.castling.white_queen_side)
+        }
+        Color::Black => {
+            (7u8, position.castling.black_king_side, position.castling.black_queen_side)
+        }
     };
 
     if from != Square::from_coords(4, rank).expect("e-file") {
