@@ -76,6 +76,9 @@ This project is **not** a top-tier competitive chess engine and does not current
 # Validate whether games can be reconstructed legally
 ply validate games.pgn
 
+# Same, but print a line per failed game (replay error)
+ply validate games.pgn --verbose
+
 # Print one-line summaries per game
 ply summarize games.pgn
 
@@ -180,8 +183,8 @@ The repository is organized as a library-first core with a small command-line fr
   - FEN parser/serializer and validation errors
 - `src/movegen.rs`
   - pseudo-legal and legal move generation, attack detection, and state transitions
-- `src/pgn.rs`
-  - PGN parsing, SAN normalization/resolution, and game reconstruction pipeline
+- `src/pgn/`
+  - PGN parsing (`parse.rs`), SAN resolution (`san.rs`), and replay (`replay.rs`)
 - `src/stats.rs`
   - summary and aggregate metrics over reconstructed games
 - `src/export.rs`

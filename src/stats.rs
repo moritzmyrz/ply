@@ -138,7 +138,13 @@ impl AggregateStatsAccumulator {
 
     pub fn push_record(&mut self, record: &GameRecord) {
         let summary = summarize_game(record);
-        self.push_summary(&summary);
+        self.push_record_with_summary(record, &summary);
+    }
+
+    /// Like [`push_record`](Self::push_record) but uses a precomputed summary so callers
+    /// can reuse the same [`GameSummary`] (e.g. for JSON output) without recomputing.
+    pub fn push_record_with_summary(&mut self, record: &GameRecord, summary: &GameSummary) {
+        self.push_summary(summary);
 
         if let Some(first_white) = record.game.moves.first() {
             *self.stats.white_first_moves.entry(first_white.clone()).or_insert(0) += 1;
@@ -209,11 +215,6 @@ fn average_if_nonzero(total: usize, count: usize) -> Option<f64> {
 }
 
 fn initial_position_for_record(record: &GameRecord) -> crate::board::Position {
-    let fen = record
-        .game
-        .tags
-        .get("FEN")
-        .map(String::as_str)
-        .unwrap_or(OFFICIAL_STARTPOS_FEN);
+    let fen = record.game.tags.get("FEN").map(String::as_str).unwrap_or(OFFICIAL_STARTPOS_FEN);
     parse_fen(fen).expect("record already reconstructed from valid initial FEN")
 }

@@ -48,7 +48,9 @@ impl<R: BufRead> Iterator for PgnReader<R> {
                     current.push_str(&line);
                     current.push('\n');
                 }
-                Some(Err(err)) => return Some(Err(PgnError::Parse(format!("failed reading PGN: {err}")))),
+                Some(Err(err)) => {
+                    return Some(Err(PgnError::Parse(format!("failed reading PGN: {err}"))))
+                }
                 None => {
                     self.finished = true;
                     break;

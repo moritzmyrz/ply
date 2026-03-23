@@ -45,7 +45,8 @@ fn apply_and_undo_move_restores_position() {
 
 #[test]
 fn opening_classification_is_exposed_in_summary() {
-    let input = "[Event \"Opening\"]\n[White \"W\"]\n[Black \"B\"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0\n";
+    let input =
+        "[Event \"Opening\"]\n[White \"W\"]\n[Black \"B\"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0\n";
     let game = parse_pgn(input).expect("valid pgn").pop().expect("one game");
     let record = reconstruct_game(&game).expect("reconstruct");
     let summary = ply::stats::summarize_game(&record);

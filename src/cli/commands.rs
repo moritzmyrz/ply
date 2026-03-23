@@ -14,6 +14,9 @@ pub struct Cli {
 pub enum Commands {
     Validate {
         file: PathBuf,
+        /// Print per-game replay errors for invalid games
+        #[arg(short, long)]
+        verbose: bool,
     },
     Summarize {
         file: PathBuf,

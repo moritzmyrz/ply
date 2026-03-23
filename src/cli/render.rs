@@ -3,10 +3,17 @@ use ply::stats::{AggregateStats, GameSummary};
 
 use super::CliError;
 
+#[derive(Debug, Clone)]
+pub struct ValidateFailure {
+    pub game_index: usize,
+    pub message: String,
+}
+
 pub struct ValidateOutput {
     pub validated_games: usize,
     pub valid: usize,
     pub invalid: usize,
+    pub failures: Vec<ValidateFailure>,
 }
 
 pub enum SummaryEntry {
@@ -38,10 +45,17 @@ pub struct PerftOutput {
 }
 
 pub fn render_validate(output: &ValidateOutput) -> String {
-    format!(
+    let mut rendered = format!(
         "validated games: {}\nvalid: {}\ninvalid: {}\n",
         output.validated_games, output.valid, output.invalid
-    )
+    );
+    if !output.failures.is_empty() {
+        rendered.push_str("\nfailures:\n");
+        for f in &output.failures {
+            rendered.push_str(&format!("  game {}: {}\n", f.game_index, f.message));
+        }
+    }
+    rendered
 }
 
 pub fn render_summaries(output: &SummariesOutput) -> String {
@@ -132,10 +146,8 @@ pub fn render_stats(output: &StatsOutput) -> Result<String, CliError> {
         "  games_with_queenside_castle: {}\n",
         output.stats.games_with_queenside_castle
     ));
-    rendered.push_str(&format!(
-        "  games_with_no_castling: {}\n",
-        output.stats.games_with_no_castling
-    ));
+    rendered
+        .push_str(&format!("  games_with_no_castling: {}\n", output.stats.games_with_no_castling));
 
     rendered.push_str("move_events:\n");
     rendered.push_str(&format!("  total_captures: {}\n", output.stats.total_captures));
@@ -143,10 +155,7 @@ pub fn render_stats(output: &StatsOutput) -> Result<String, CliError> {
     rendered.push_str(&format!("  total_checks: {}\n", output.stats.total_checks));
     rendered.push_str(&format!("  average_checks: {:.2}\n", output.stats.average_checks));
     rendered.push_str(&format!("  total_promotions: {}\n", output.stats.total_promotions));
-    rendered.push_str(&format!(
-        "  average_promotions: {:.2}\n",
-        output.stats.average_promotions
-    ));
+    rendered.push_str(&format!("  average_promotions: {:.2}\n", output.stats.average_promotions));
     Ok(rendered)
 }
 

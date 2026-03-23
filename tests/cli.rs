@@ -16,6 +16,21 @@ fn validate_command_runs() {
 }
 
 #[test]
+fn validate_verbose_lists_failed_games() {
+    let output = Command::new(bin())
+        .args(["validate", "tests/fixtures/mixed_valid_invalid.pgn", "--verbose"])
+        .output()
+        .expect("should run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("valid: 1"));
+    assert!(stdout.contains("invalid: 1"));
+    assert!(stdout.contains("failures:"));
+    assert!(stdout.contains("game 2:"));
+    assert!(stdout.contains("ply 1"));
+}
+
+#[test]
 fn stats_json_command_runs() {
     let output = Command::new(bin())
         .args(["stats", "tests/fixtures/sample_games.pgn", "--json"])
