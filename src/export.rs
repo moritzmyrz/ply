@@ -13,6 +13,9 @@ pub struct JsonGameSummary {
     pub result: Option<String>,
     pub plies: usize,
     pub winner: Option<String>,
+    pub eco: Option<String>,
+    pub opening: Option<String>,
+    pub variation: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -30,6 +33,7 @@ pub struct JsonAggregateStats {
     pub average_plies_unresolved: Option<f64>,
     pub white_first_moves: BTreeMap<String, usize>,
     pub black_first_moves: BTreeMap<String, usize>,
+    pub opening_frequencies: BTreeMap<String, usize>,
     pub games_with_kingside_castle: usize,
     pub games_with_queenside_castle: usize,
     pub games_with_no_castling: usize,
@@ -49,6 +53,9 @@ pub fn to_json_summary(summary: &GameSummary) -> JsonGameSummary {
         result: summary.result.clone(),
         plies: summary.plies,
         winner: summary.winner.map(color_to_string),
+        eco: summary.eco.clone(),
+        opening: summary.opening.clone(),
+        variation: summary.variation.clone(),
     }
 }
 
@@ -67,6 +74,7 @@ pub fn to_json_aggregate(stats: &AggregateStats) -> JsonAggregateStats {
         average_plies_unresolved: stats.average_plies_unresolved,
         white_first_moves: stats.white_first_moves.clone(),
         black_first_moves: stats.black_first_moves.clone(),
+        opening_frequencies: stats.opening_frequencies.clone(),
         games_with_kingside_castle: stats.games_with_kingside_castle,
         games_with_queenside_castle: stats.games_with_queenside_castle,
         games_with_no_castling: stats.games_with_no_castling,
