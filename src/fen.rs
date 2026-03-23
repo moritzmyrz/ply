@@ -1,13 +1,21 @@
 use crate::board::{CastlingRights, Color, Piece, PieceKind, Position, Square};
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum FenError {
+    #[error("expected 6 FEN fields")]
     InvalidFieldCount,
+    #[error("invalid board field: {0}")]
     InvalidBoard(String),
+    #[error("invalid side-to-move field")]
     InvalidSideToMove,
+    #[error("invalid castling rights field")]
     InvalidCastlingRights,
+    #[error("invalid en-passant field")]
     InvalidEnPassant,
+    #[error("invalid halfmove clock field")]
     InvalidHalfmoveClock,
+    #[error("invalid fullmove number field")]
     InvalidFullmoveNumber,
 }
 
@@ -94,6 +102,8 @@ fn parse_board(field: &str, position: &mut Position) -> Result<(), FenError> {
     if ranks.len() != 8 {
         return Err(FenError::InvalidBoard("expected 8 ranks".to_string()));
     }
+    let mut white_kings = 0u8;
+    let mut black_kings = 0u8;
     for (fen_rank, chunk) in ranks.iter().enumerate() {
         let rank = 7 - fen_rank as u8;
         let mut file = 0u8;
@@ -116,12 +126,31 @@ fn parse_board(field: &str, position: &mut Position) -> Result<(), FenError> {
             }
             let color = if ch.is_ascii_uppercase() { Color::White } else { Color::Black };
             let sq = Square::from_coords(file, rank).expect("square");
-            position.set_piece(sq, Some(Piece { color, kind }));
+            let piece = Piece { color, kind };
+            if piece.kind == PieceKind::King {
+                match piece.color {
+                    Color::White => {
+                        white_kings += 1;
+                        position.white_king = sq;
+                    }
+                    Color::Black => {
+                        black_kings += 1;
+                        position.black_king = sq;
+                    }
+                }
+            }
+            position.set_piece(sq, Some(piece));
             file += 1;
         }
         if file != 8 {
             return Err(FenError::InvalidBoard("rank not complete".to_string()));
         }
+    }
+    if white_kings != 1 {
+        return Err(FenError::InvalidBoard("expected exactly one white king".to_string()));
+    }
+    if black_kings != 1 {
+        return Err(FenError::InvalidBoard("expected exactly one black king".to_string()));
     }
     Ok(())
 }

@@ -36,3 +36,14 @@ fn perft_command_runs() {
     assert!(stdout.contains("depth: 2"));
     assert!(stdout.contains("nodes: 400"));
 }
+
+#[test]
+fn perft_divide_command_runs() {
+    let output = Command::new(bin())
+        .args(["perft", "--depth", "2", "--divide"])
+        .output()
+        .expect("should run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("e2e4: 20"));
+}

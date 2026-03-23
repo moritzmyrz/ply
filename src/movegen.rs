@@ -1,22 +1,39 @@
-use crate::board::{CastleSide, ChessMove, Color, Piece, PieceKind, Position, Square};
+use crate::board::{CastleSide, CastlingRights, ChessMove, Color, Piece, PieceKind, Position, Square};
+
+#[derive(Debug, Clone, Copy)]
+pub struct Undo {
+    moved_piece: Piece,
+    captured_piece: Option<Piece>,
+    prev_side_to_move: Color,
+    prev_castling: CastlingRights,
+    prev_en_passant_target: Option<Square>,
+    prev_halfmove_clock: u32,
+    prev_fullmove_number: u32,
+    prev_white_king: Square,
+    prev_black_king: Square,
+}
 
 pub fn generate_legal_moves(position: &Position) -> Vec<ChessMove> {
-    let pseudo = generate_pseudo_legal_moves(position);
-    pseudo
-        .into_iter()
-        .filter(|mv| {
-            let mut next = position.clone();
-            apply_move(&mut next, *mv);
-            !is_in_check(&next, position.side_to_move)
-        })
-        .collect()
+    let mut moves = Vec::new();
+    generate_legal_moves_into(position, &mut moves);
+    moves
+}
+
+pub fn generate_legal_moves_into(position: &Position, out: &mut Vec<ChessMove>) {
+    out.clear();
+    let mut pseudo = Vec::with_capacity(64);
+    generate_pseudo_legal_moves_into(position, &mut pseudo);
+    for mv in pseudo {
+        let mut next = position.clone();
+        apply_move(&mut next, mv);
+        if !is_in_check(&next, position.side_to_move) {
+            out.push(mv);
+        }
+    }
 }
 
 pub fn is_in_check(position: &Position, color: Color) -> bool {
-    let king_sq = match position.king_square(color) {
-        Some(sq) => sq,
-        None => return false,
-    };
+    let king_sq = position.king_square(color).expect("valid positions must track kings");
     is_square_attacked(position, king_sq, color.opposite())
 }
 
@@ -80,37 +97,85 @@ pub fn is_square_attacked(position: &Position, target: Square, by: Color) -> boo
 }
 
 pub fn apply_move(position: &mut Position, mv: ChessMove) {
-    let piece = position.piece_at(mv.from);
+    let _ = apply_move_with_undo(position, mv);
+}
+
+pub fn apply_move_with_undo(position: &mut Position, mv: ChessMove) -> Undo {
+    let piece = position.piece_at(mv.from).expect("move source should contain a piece");
+    let captured_piece = captured_piece_for_move(position, mv, piece);
+    let undo = Undo {
+        moved_piece: piece,
+        captured_piece,
+        prev_side_to_move: position.side_to_move,
+        prev_castling: position.castling,
+        prev_en_passant_target: position.en_passant_target,
+        prev_halfmove_clock: position.halfmove_clock,
+        prev_fullmove_number: position.fullmove_number,
+        prev_white_king: position.white_king,
+        prev_black_king: position.black_king,
+    };
+
     position.set_piece(mv.from, None);
     if mv.is_en_passant {
-        if let Some(p) = piece {
-            let capture_rank =
-                if p.color == Color::White { mv.to.rank() - 1 } else { mv.to.rank() + 1 };
-            let capture_sq =
-                Square::from_coords(mv.to.file(), capture_rank).expect("capture square");
-            position.set_piece(capture_sq, None);
-        }
+        let capture_sq = en_passant_capture_square(mv, piece.color);
+        position.set_piece(capture_sq, None);
     }
     if let Some(side) = mv.castle {
-        apply_castle_rook_move(position, side, piece.expect("king exists").color);
+        apply_castle_rook_move(position, side, piece.color);
     }
-    let moved_piece = match (piece, mv.promotion) {
-        (Some(mut p), Some(prom)) => {
-            p.kind = prom;
-            Some(p)
+
+    let mut moved_piece = piece;
+    if let Some(promotion) = mv.promotion {
+        moved_piece.kind = promotion;
+    }
+    position.set_piece(mv.to, Some(moved_piece));
+
+    if piece.kind == PieceKind::King {
+        match piece.color {
+            Color::White => position.white_king = mv.to,
+            Color::Black => position.black_king = mv.to,
         }
-        (None, Some(_)) => None,
-        (p, None) => p,
-    };
-    position.set_piece(mv.to, moved_piece);
+    }
+
     update_castling_after_move(position, piece, mv);
     update_en_passant_target(position, piece, mv);
     update_move_counters(position, piece, mv);
     position.side_to_move = position.side_to_move.opposite();
+
+    undo
+}
+
+pub fn undo_move(position: &mut Position, mv: ChessMove, undo: Undo) {
+    position.side_to_move = undo.prev_side_to_move;
+    position.castling = undo.prev_castling;
+    position.en_passant_target = undo.prev_en_passant_target;
+    position.halfmove_clock = undo.prev_halfmove_clock;
+    position.fullmove_number = undo.prev_fullmove_number;
+    position.white_king = undo.prev_white_king;
+    position.black_king = undo.prev_black_king;
+
+    position.set_piece(mv.from, Some(undo.moved_piece));
+    if mv.is_en_passant {
+        position.set_piece(mv.to, None);
+        let capture_sq = en_passant_capture_square(mv, undo.moved_piece.color);
+        position.set_piece(capture_sq, undo.captured_piece);
+    } else {
+        position.set_piece(mv.to, undo.captured_piece);
+    }
+
+    if let Some(side) = mv.castle {
+        undo_castle_rook_move(position, side, undo.moved_piece.color);
+    }
 }
 
 pub fn generate_pseudo_legal_moves(position: &Position) -> Vec<ChessMove> {
     let mut moves = Vec::new();
+    generate_pseudo_legal_moves_into(position, &mut moves);
+    moves
+}
+
+pub fn generate_pseudo_legal_moves_into(position: &Position, out: &mut Vec<ChessMove>) {
+    out.clear();
     for idx in 0..64 {
         let from = Square(idx as u8);
         let Some(piece) = position.piece_at(from) else {
@@ -120,36 +185,41 @@ pub fn generate_pseudo_legal_moves(position: &Position) -> Vec<ChessMove> {
             continue;
         }
         match piece.kind {
-            PieceKind::Pawn => push_pawn_moves(position, from, piece, &mut moves),
-            PieceKind::Knight => push_knight_moves(position, from, piece, &mut moves),
-            PieceKind::Bishop => push_slider_moves(
-                position,
-                from,
-                piece,
-                &[(-1, -1), (-1, 1), (1, -1), (1, 1)],
-                &mut moves,
-            ),
-            PieceKind::Rook => push_slider_moves(
-                position,
-                from,
-                piece,
-                &[(-1, 0), (1, 0), (0, -1), (0, 1)],
-                &mut moves,
-            ),
+            PieceKind::Pawn => push_pawn_moves(position, from, piece, out),
+            PieceKind::Knight => push_knight_moves(position, from, piece, out),
+            PieceKind::Bishop => {
+                push_slider_moves(position, from, piece, &[(-1, -1), (-1, 1), (1, -1), (1, 1)], out)
+            }
+            PieceKind::Rook => {
+                push_slider_moves(position, from, piece, &[(-1, 0), (1, 0), (0, -1), (0, 1)], out)
+            }
             PieceKind::Queen => push_slider_moves(
                 position,
                 from,
                 piece,
                 &[(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)],
-                &mut moves,
+                out,
             ),
             PieceKind::King => {
-                push_king_moves(position, from, piece, &mut moves);
-                push_castling_moves(position, from, piece, &mut moves);
+                push_king_moves(position, from, piece, out);
+                push_castling_moves(position, from, piece, out);
             }
         }
     }
-    moves
+}
+
+fn captured_piece_for_move(position: &Position, mv: ChessMove, piece: Piece) -> Option<Piece> {
+    if mv.is_en_passant {
+        let capture_sq = en_passant_capture_square(mv, piece.color);
+        position.piece_at(capture_sq)
+    } else {
+        position.piece_at(mv.to)
+    }
+}
+
+fn en_passant_capture_square(mv: ChessMove, color: Color) -> Square {
+    let capture_rank = if color == Color::White { mv.to.rank() - 1 } else { mv.to.rank() + 1 };
+    Square::from_coords(mv.to.file(), capture_rank).expect("capture square")
 }
 
 fn push_pawn_moves(position: &Position, from: Square, piece: Piece, out: &mut Vec<ChessMove>) {
@@ -280,12 +350,8 @@ fn push_castling_moves(position: &Position, from: Square, piece: Piece, out: &mu
         return;
     }
     let (rank, king_side_ok, queen_side_ok) = match piece.color {
-        Color::White => {
-            (0u8, position.castling.white_king_side, position.castling.white_queen_side)
-        }
-        Color::Black => {
-            (7u8, position.castling.black_king_side, position.castling.black_queen_side)
-        }
+        Color::White => (0u8, position.castling.white_king_side, position.castling.white_queen_side),
+        Color::Black => (7u8, position.castling.black_king_side, position.castling.black_queen_side),
     };
 
     if from != Square::from_coords(4, rank).expect("e-file") {
@@ -325,7 +391,22 @@ fn push_castling_moves(position: &Position, from: Square, piece: Piece, out: &mu
 
 fn apply_castle_rook_move(position: &mut Position, side: CastleSide, color: Color) {
     let rank = if color == Color::White { 0 } else { 7 };
-    let (rook_from, rook_to) = match side {
+    let (rook_from, rook_to) = castle_rook_squares(side, rank);
+    let rook = position.piece_at(rook_from);
+    position.set_piece(rook_from, None);
+    position.set_piece(rook_to, rook);
+}
+
+fn undo_castle_rook_move(position: &mut Position, side: CastleSide, color: Color) {
+    let rank = if color == Color::White { 0 } else { 7 };
+    let (rook_from, rook_to) = castle_rook_squares(side, rank);
+    let rook = position.piece_at(rook_to);
+    position.set_piece(rook_to, None);
+    position.set_piece(rook_from, rook);
+}
+
+fn castle_rook_squares(side: CastleSide, rank: u8) -> (Square, Square) {
+    match side {
         CastleSide::KingSide => (
             Square::from_coords(7, rank).expect("rook"),
             Square::from_coords(5, rank).expect("rook"),
@@ -334,30 +415,23 @@ fn apply_castle_rook_move(position: &mut Position, side: CastleSide, color: Colo
             Square::from_coords(0, rank).expect("rook"),
             Square::from_coords(3, rank).expect("rook"),
         ),
-    };
-    let rook = position.piece_at(rook_from);
-    position.set_piece(rook_from, None);
-    position.set_piece(rook_to, rook);
+    }
 }
 
-fn update_castling_after_move(position: &mut Position, moved_piece: Option<Piece>, mv: ChessMove) {
-    if let Some(piece) = moved_piece {
-        match piece.kind {
-            PieceKind::King => match piece.color {
-                Color::White => {
-                    position.castling.white_king_side = false;
-                    position.castling.white_queen_side = false;
-                }
-                Color::Black => {
-                    position.castling.black_king_side = false;
-                    position.castling.black_queen_side = false;
-                }
-            },
-            PieceKind::Rook => {
-                disable_rook_castle(position, mv.from);
+fn update_castling_after_move(position: &mut Position, moved_piece: Piece, mv: ChessMove) {
+    match moved_piece.kind {
+        PieceKind::King => match moved_piece.color {
+            Color::White => {
+                position.castling.white_king_side = false;
+                position.castling.white_queen_side = false;
             }
-            _ => {}
-        }
+            Color::Black => {
+                position.castling.black_king_side = false;
+                position.castling.black_queen_side = false;
+            }
+        },
+        PieceKind::Rook => disable_rook_castle(position, mv.from),
+        _ => {}
     }
     disable_rook_castle(position, mv.to);
 }
@@ -372,22 +446,20 @@ fn disable_rook_castle(position: &mut Position, sq: Square) {
     }
 }
 
-fn update_en_passant_target(position: &mut Position, moved_piece: Option<Piece>, mv: ChessMove) {
+fn update_en_passant_target(position: &mut Position, moved_piece: Piece, mv: ChessMove) {
     position.en_passant_target = None;
-    if let Some(piece) = moved_piece {
-        if piece.kind == PieceKind::Pawn {
-            let from_rank = mv.from.rank() as i8;
-            let to_rank = mv.to.rank() as i8;
-            if (from_rank - to_rank).abs() == 2 {
-                let mid_rank = ((from_rank + to_rank) / 2) as u8;
-                position.en_passant_target = Square::from_coords(mv.from.file(), mid_rank);
-            }
+    if moved_piece.kind == PieceKind::Pawn {
+        let from_rank = mv.from.rank() as i8;
+        let to_rank = mv.to.rank() as i8;
+        if (from_rank - to_rank).abs() == 2 {
+            let mid_rank = ((from_rank + to_rank) / 2) as u8;
+            position.en_passant_target = Square::from_coords(mv.from.file(), mid_rank);
         }
     }
 }
 
-fn update_move_counters(position: &mut Position, moved_piece: Option<Piece>, mv: ChessMove) {
-    if mv.is_capture || moved_piece.map(|p| p.kind == PieceKind::Pawn).unwrap_or(false) {
+fn update_move_counters(position: &mut Position, moved_piece: Piece, mv: ChessMove) {
+    if mv.is_capture || moved_piece.kind == PieceKind::Pawn {
         position.halfmove_clock = 0;
     } else {
         position.halfmove_clock += 1;

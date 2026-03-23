@@ -164,11 +164,27 @@ impl ChessMove {
     pub fn new(from: Square, to: Square) -> Self {
         Self { from, to, promotion: None, is_capture: false, is_en_passant: false, castle: None }
     }
+
+    pub fn to_coordinate(self) -> String {
+        let mut out = format!("{}{}", self.from.to_algebraic(), self.to.to_algebraic());
+        if let Some(promotion) = self.promotion {
+            out.push(match promotion {
+                PieceKind::Knight => 'n',
+                PieceKind::Bishop => 'b',
+                PieceKind::Rook => 'r',
+                PieceKind::Queen => 'q',
+                PieceKind::Pawn | PieceKind::King => unreachable!("invalid promotion piece"),
+            });
+        }
+        out
+    }
 }
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Position {
     pub board: [Option<Piece>; 64],
+    pub white_king: Square,
+    pub black_king: Square,
     pub side_to_move: Color,
     pub castling: CastlingRights,
     pub en_passant_target: Option<Square>,
@@ -192,6 +208,8 @@ impl Position {
     pub fn empty() -> Self {
         Self {
             board: [None; 64],
+            white_king: Square::from_coords(4, 0).expect("e1"),
+            black_king: Square::from_coords(4, 7).expect("e8"),
             side_to_move: Color::White,
             castling: CastlingRights::empty(),
             en_passant_target: None,
@@ -209,13 +227,9 @@ impl Position {
     }
 
     pub fn king_square(&self, color: Color) -> Option<Square> {
-        for idx in 0..64 {
-            if let Some(piece) = self.board[idx] {
-                if piece.color == color && piece.kind == PieceKind::King {
-                    return Some(Square(idx as u8));
-                }
-            }
-        }
-        None
+        Some(match color {
+            Color::White => self.white_king,
+            Color::Black => self.black_king,
+        })
     }
 }

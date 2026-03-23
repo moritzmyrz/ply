@@ -1,5 +1,5 @@
 use ply::fen::{parse_fen, STARTPOS_FEN};
-use ply::perft::perft;
+use ply::perft::{perft, perft_divide};
 
 #[test]
 fn perft_start_position_matches_known_counts() {
@@ -23,4 +23,24 @@ fn perft_en_passant_stress_position_matches_known_counts() {
     let pos = parse_fen(fen).expect("position should parse");
     assert_eq!(perft(&pos, 1), 14);
     assert_eq!(perft(&pos, 2), 191);
+}
+
+#[test]
+fn perft_start_position_depth_four_matches_known_count() {
+    let pos = parse_fen(STARTPOS_FEN).expect("start position should parse");
+    assert_eq!(perft(&pos, 4), 197_281);
+}
+
+#[test]
+fn perft_kiwipete_depth_three_matches_known_count() {
+    let fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    let pos = parse_fen(fen).expect("kiwipete should parse");
+    assert_eq!(perft(&pos, 3), 97_862);
+}
+
+#[test]
+fn perft_divide_sums_to_perft() {
+    let pos = parse_fen(STARTPOS_FEN).expect("start position should parse");
+    let divide_total: u64 = perft_divide(&pos, 3).into_iter().map(|(_, nodes)| nodes).sum();
+    assert_eq!(divide_total, perft(&pos, 3));
 }
